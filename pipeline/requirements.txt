@@ -1,0 +1,5 @@
+# Data pipeline dependencies (Person 1)
+# Install: pip install -r requirements.txt
+
+pandas>=2.0.0
+pyarrow>=14.0.0
