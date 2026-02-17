@@ -66,7 +66,42 @@ urban-mobility-data-explorer/
 
 ### 2. Backend (Person 2)
 
-*Person 2 to add: how to run the backend, install steps, port.*
+### Prerequisites
+- Python 3.8+
+- pip
+
+### Installation
+```bash
+cd api
+python -m venv venv
+
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Running the Backend
+```bash
+python app.py
+```
+
+The API will run on **http://localhost:5000**
+
+### API Endpoints
+- `GET /api/trips` - Get trips with filters
+- `GET /api/statistics` - Overall statistics
+- `GET /api/insights` - Key insights
+- `GET /api/zones` - All taxi zones
+- `GET /api/top-routes` - Most popular routes
+- `GET /api/statistics/by-borough` - Stats by borough
+- `GET /api/statistics/peak-vs-offpeak` - Rush hour analysis
+
+See `API_DOCS.md` for detailed endpoint documentation.
 
 ### 3. Frontend (Person 3)
 
