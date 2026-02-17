@@ -5,11 +5,17 @@ print("Downloading sample data...")
 
 #Recent month (November 2025) sample data
 
-url = "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-11.parquet"
+file_path = 'data/yellow_tripdata_2019-01.csv'
+
+#Check file exists
+
+if not os.path.exists(file_path):
+    print(f" File not found at: {file_path}")
+    exit()
 
 #read first 10000 rows
 
-df = pd.read_parquet(url, engine='pyarrow')
+df = pd.read_csv(file_path)
 sample = df.head(10000)
 
 print(f"Dowloaded {len(sample)} rows")
