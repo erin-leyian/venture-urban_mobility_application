@@ -1,94 +1,118 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify
 from utils.db_connect import get_db_connection, dict_from_row
 
 stats_bp = Blueprint('statistics', __name__)
 
 @stats_bp.route('/api/statistics', methods=['GET'])
 def get_statistics():
-    """Get aggregate statistics"""
-    
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    # Basic statistics
+
     cursor.execute("""
-        SELECT 
+        SELECT
             COUNT(*) as total_trips,
             AVG(trip_distance) as avg_distance,
             AVG(total_amount) as avg_fare,
             AVG(tip_amount) as avg_tip,
             AVG(passenger_count) as avg_passengers,
-            SUM(total_amount) as total_revenue,
-            MAX(trip_distance) as max_distance,
-            MAX(total_amount) as max_fare
+            AVG(trip_duration_minutes) as avg_duration_minutes,
+            AVG(speed_mph) as avg_speed_mph,
+            AVG(fare_per_mile) as avg_fare_per_mile,
+            SUM(total_amount) as total_revenue
         FROM trips
     """)
-    
+
     stats = dict_from_row(cursor.fetchone())
-    
     conn.close()
-    
-    # Round numbers
-    stats = {k: round(v, 2) if v and isinstance(v, float) else v for k, v in stats.items()}
-    
+
+    stats = {k: round(v, 2) if isinstance(v, float) else v 
+             for k, v in stats.items()}
+
     return jsonify(stats)
 
 
 @stats_bp.route('/api/statistics/by-borough', methods=['GET'])
-def get_statistics_by_borough():
-    """Get statistics grouped by borough"""
-    
+def get_stats_by_borough():
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    query = """
-        SELECT 
-            z.Borough,
+
+    cursor.execute("""
+        SELECT
+            z.borough,
             COUNT(*) as trip_count,
             AVG(t.trip_distance) as avg_distance,
             AVG(t.total_amount) as avg_fare,
+            AVG(t.trip_duration_minutes) as avg_duration,
+            AVG(t.speed_mph) as avg_speed,
             SUM(t.total_amount) as total_revenue
         FROM trips t
-        JOIN zones z ON t.PULocationID = z.LocationID
-        GROUP BY z.Borough
+        JOIN taxi_zones z ON t.pu_location_id = z.location_id
+        GROUP BY z.borough
         ORDER BY trip_count DESC
-    """
-    
-    cursor.execute(query)
+    """)
+
     rows = cursor.fetchall()
-    
     stats = []
     for row in rows:
         stats.append({
-            "borough": row['Borough'],
+            "borough": row['borough'],
             "trip_count": row['trip_count'],
             "avg_distance": round(row['avg_distance'], 2),
             "avg_fare": round(row['avg_fare'], 2),
+            "avg_duration": round(row['avg_duration'], 2),
+            "avg_speed": round(row['avg_speed'], 2),
             "total_revenue": round(row['total_revenue'], 2)
         })
-    
+
     conn.close()
-    
     return jsonify({"by_borough": stats})
+
+
+@stats_bp.route('/api/statistics/peak-vs-offpeak', methods=['GET'])
+def get_peak_vs_offpeak():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            is_peak_hour,
+            COUNT(*) as trip_count,
+            AVG(total_amount) as avg_fare,
+            AVG(trip_distance) as avg_distance,
+            AVG(trip_duration_minutes) as avg_duration,
+            AVG(tip_percentage) as avg_tip_percentage
+        FROM trips
+        GROUP BY is_peak_hour
+    """)
+
+    rows = cursor.fetchall()
+    result = {}
+    for row in rows:
+        key = "peak_hour" if row['is_peak_hour'] == 1 else "off_peak"
+        result[key] = {
+            "trip_count": row['trip_count'],
+            "avg_fare": round(row['avg_fare'], 2),
+            "avg_distance": round(row['avg_distance'], 2),
+            "avg_duration": round(row['avg_duration'], 2),
+            "avg_tip_percentage": round(row['avg_tip_percentage'], 2)
+        }
+
+    conn.close()
+    return jsonify(result)
 
 
 @stats_bp.route('/api/insights', methods=['GET'])
 def get_insights():
-    """Get pre-calculated insights"""
-    
     conn = get_db_connection()
     cursor = conn.cursor()
-    
     insights = []
-    
-    # Insight 1: Busiest pickup borough
+
+    # Insight 1: Busiest borough
     cursor.execute("""
-        SELECT 
-            z.Borough,
-            COUNT(*) as trip_count
+        SELECT z.borough, COUNT(*) as trip_count
         FROM trips t
-        JOIN zones z ON t.PULocationID = z.LocationID
-        GROUP BY z.Borough
+        JOIN taxi_zones z ON t.pu_location_id = z.location_id
+        GROUP BY z.borough
         ORDER BY trip_count DESC
         LIMIT 1
     """)
@@ -96,52 +120,39 @@ def get_insights():
     if row:
         insights.append({
             "title": "Busiest Pickup Borough",
-            "value": row['Borough'],
+            "value": row['borough'],
             "metric": f"{row['trip_count']:,} trips"
         })
-    
-    # Insight 2: Average trip distance
-    cursor.execute("SELECT AVG(trip_distance) as avg_dist FROM trips")
-    avg_dist = cursor.fetchone()['avg_dist']
+
+    # Insight 2: Average speed
+    cursor.execute("SELECT AVG(speed_mph) as avg_speed FROM trips WHERE speed_mph > 0")
+    avg_speed = cursor.fetchone()['avg_speed']
     insights.append({
-        "title": "Average Trip Distance",
-        "value": f"{avg_dist:.2f} miles",
+        "title": "Average Trip Speed",
+        "value": f"{avg_speed:.1f} mph",
         "metric": "across all trips"
     })
-    
-    # Insight 3: Average tip percentage
-    cursor.execute("""
-        SELECT 
-            AVG(tip_amount * 100.0 / NULLIF(fare_amount, 0)) as avg_tip_pct
-        FROM trips
-        WHERE fare_amount > 0 AND tip_amount > 0
-    """)
-    avg_tip = cursor.fetchone()['avg_tip_pct']
-    if avg_tip:
-        insights.append({
-            "title": "Average Tip Percentage",
-            "value": f"{avg_tip:.1f}%",
-            "metric": "of fare amount"
-        })
-    
-    # Insight 4: Most popular payment type
-    cursor.execute("""
-        SELECT 
-            payment_type,
-            COUNT(*) as count
-        FROM trips
-        GROUP BY payment_type
-        ORDER BY count DESC
-        LIMIT 1
-    """)
-    payment = cursor.fetchone()
-    payment_types = {1: "Credit Card", 2: "Cash", 3: "No Charge", 4: "Dispute"}
+
+    # Insight 3: Peak vs off-peak trips
+    cursor.execute("SELECT COUNT(*) as cnt FROM trips WHERE is_peak_hour = 1")
+    peak_count = cursor.fetchone()['cnt']
+    cursor.execute("SELECT COUNT(*) as cnt FROM trips")
+    total = cursor.fetchone()['cnt']
+    peak_pct = (peak_count / total) * 100
     insights.append({
-        "title": "Most Popular Payment Method",
-        "value": payment_types.get(payment['payment_type'], "Unknown"),
-        "metric": f"{payment['count']:,} trips"
+        "title": "Peak Hour Trips",
+        "value": f"{peak_pct:.1f}%",
+        "metric": "of all trips happen during rush hour"
     })
-    
+
+    # Insight 4: Average fare per mile
+    cursor.execute("SELECT AVG(fare_per_mile) as avg_fpm FROM trips WHERE fare_per_mile > 0")
+    avg_fpm = cursor.fetchone()['avg_fpm']
+    insights.append({
+        "title": "Average Fare Per Mile",
+        "value": f"${avg_fpm:.2f}",
+        "metric": "revenue per mile driven"
+    })
+
     conn.close()
-    
     return jsonify({"insights": insights})
