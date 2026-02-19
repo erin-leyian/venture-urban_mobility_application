@@ -1,4 +1,4 @@
-# venture urban mobility application
+# venture urban mobility application.
 
 We built this for the summative: it uses NYC TLC taxi trip data. You clean and load the data into a database, run a backend to query it, and a frontend dashboard to explore and visualise it.
 
