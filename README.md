@@ -64,7 +64,7 @@ urban-mobility-data-explorer/
    cd ../database && python insert_data.py
    ```
 
-### 2. Backend (Person 2)
+### 2. Backend
 
 ### Prerequisites
 - Python 3.8+
@@ -103,7 +103,7 @@ The API will run on **http://localhost:5000**
 
 See `API_DOCS.md` for detailed endpoint documentation.
 
-### 3. Frontend (Person 3)
+### 3. Frontend
 
 *Person 3 to add: how to run/serve the frontend, any install steps.*
 
@@ -111,6 +111,11 @@ See `API_DOCS.md` for detailed endpoint documentation.
 
 [Add your 5-minute video link here]
 
+### Documentation
+(Technical Documentation)[https://docs.google.com/document/d/1SQwXaS7YuSznij4jZOHoLIxSB9jrr3ru4EGE_za8RT0/edit?tab=t.0]
+
+### Team Sheet
+(Team Sheet)[https://docs.google.com/spreadsheets/d/1QJqkAyxRMrB263eiSfwBkgEmQOp3IDE967a9dt-lmQw/edit?gid=0#gid=0]
 ## Team
 
 - **Belyse Intwaza**: Data engineering & database (cleaning, feature engineering, schema, insert script, custom algorithm).
