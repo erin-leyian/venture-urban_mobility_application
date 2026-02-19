@@ -1,9 +1,3 @@
-/* ============================================================
-   NYC Urban Mobility Analytics — app.js
-   Pure vanilla JS. Requires Leaflet 1.9, Chart.js 4.4 (CDN).
-   Dataset: NYC TLC Yellow Taxi — January 2019
-   ============================================================ */
-
 const API = "http://localhost:5002/api";
 
 /* ── State ──────────────────────────────────────────────────────────── */

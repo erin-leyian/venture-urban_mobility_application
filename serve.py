@@ -27,7 +27,7 @@ if __name__ == "__main__":
     with socketserver.TCPServer(("", PORT), Handler) as httpd:
         url = f"http://localhost:{PORT}"
         print(f"\n  Frontend  →  {url}")
-        print(f"  API       →  http://localhost:5001  (start separately with: cd api && python app.py)\n")
+        print(f"  API       →  http://localhost:5002  (start separately with: cd api && python3 app.py)\n")
         threading.Timer(0.8, lambda: webbrowser.open(url)).start()
         try:
             httpd.serve_forever()
