@@ -1013,3 +1013,79 @@ body {
   border: 1px solid #444 !important;
   color: #fff !important;
 }
+
+/* ── Progress bar smooth animation ──────────────────────────────────── */
+.progress-fill {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ── Apply button busy state ─────────────────────────────────────────── */
+.apply-btn.busy {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+.apply-btn.busy:hover {
+  opacity: 0.55;
+}
+
+/* ── Peak row interactive ────────────────────────────────────────────── */
+.peak-row {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: 0 -4px;
+  transition: background 0.15s;
+}
+.peak-row:hover {
+  background: rgba(255,215,0,0.06);
+}
+.peak-row.active {
+  background: rgba(255,215,0,0.12);
+}
+.peak-row.active .peak-label,
+.peak-row.active .peak-count {
+  color: var(--yellow);
+}
+.peak-row.active .peak-bar-fill {
+  background: #fff;
+}
+
+/* ── Histogram bar selected glow ─────────────────────────────────────── */
+.histogram-bar.selected {
+  background: var(--yellow) !important;
+  outline: 2px solid rgba(255,255,255,0.6);
+  outline-offset: 1px;
+  box-shadow: 0 0 6px rgba(255,215,0,0.5);
+}
+
+/* ── Search dropdown keyboard navigation ─────────────────────────────── */
+.search-suggestion.keyboard-active {
+  background: rgba(255,215,0,0.12);
+  outline: 1px solid rgba(255,215,0,0.3);
+}
+
+/* ── Borough item unchecked dim ──────────────────────────────────────── */
+.borough-item:not(.checked) {
+  opacity: 0.45;
+}
+.borough-item {
+  transition: opacity 0.2s;
+}
+
+/* ── Hour badge on filter label ──────────────────────────────────────── */
+.filter-active-badge {
+  background: var(--yellow);
+  color: #000;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 99px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* ── Map zone transition on restyle ─────────────────────────────────── */
+.leaflet-interactive {
+  transition: fill-opacity 0.3s, stroke-width 0.2s;
+}

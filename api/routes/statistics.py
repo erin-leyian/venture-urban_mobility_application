@@ -67,6 +67,7 @@ def get_statistics():
 
 @stats_bp.route('/api/statistics/by-borough')
 def get_stats_by_borough():
+    where, params = _build_where("t.trip_distance>=0")
     conn = get_db_connection(); c = conn.cursor()
     c.execute(f"""
         SELECT z.Borough AS borough, COUNT(*) AS trip_count,
@@ -74,8 +75,8 @@ def get_stats_by_borough():
                AVG({DUR}) AS avg_duration, AVG({SPD}) AS avg_speed,
                SUM(t.total_amount) AS total_revenue
         FROM trips t JOIN zones z ON t.PULocationID=z.LocationID
-        WHERE t.trip_distance>0 GROUP BY z.Borough ORDER BY trip_count DESC
-    """)
+        WHERE {where} GROUP BY z.Borough ORDER BY trip_count DESC
+    """, params)
     rows = c.fetchall(); conn.close()
     return jsonify([{"borough":r['borough'],"trip_count":r['trip_count'],
                      "avg_distance":_r(r['avg_distance']),"avg_fare":_r(r['avg_fare']),
@@ -85,9 +86,10 @@ def get_stats_by_borough():
 
 @stats_bp.route('/api/statistics/peak-hours')
 def get_peak_hours():
+    where, params = _build_where("trip_distance>=0")
     conn = get_db_connection(); c = conn.cursor()
-    c.execute("SELECT strftime('%H',tpep_pickup_datetime) AS hour, COUNT(*) AS trip_count "
-              "FROM trips GROUP BY hour ORDER BY trip_count DESC LIMIT 10")
+    c.execute(f"SELECT strftime('%H',tpep_pickup_datetime) AS hour, COUNT(*) AS trip_count "
+              f"FROM trips WHERE {where} GROUP BY hour ORDER BY trip_count DESC LIMIT 10", params)
     rows = c.fetchall(); conn.close()
     result = []
     for r in rows:
@@ -98,28 +100,40 @@ def get_peak_hours():
 
 @stats_bp.route('/api/statistics/by-zone')
 def get_stats_by_zone():
+    where, params = _build_where("trip_distance>=0")
     conn = get_db_connection(); c = conn.cursor()
-    c.execute("SELECT PULocationID AS location_id, COUNT(*) AS trip_count FROM trips GROUP BY PULocationID")
+    c.execute(f"SELECT PULocationID AS location_id, COUNT(*) AS trip_count "
+              f"FROM trips WHERE {where} GROUP BY PULocationID", params)
     stats = {str(r['location_id']): r['trip_count'] for r in c.fetchall()}
     conn.close(); return jsonify(stats)
 
 @stats_bp.route('/api/statistics/trends')
 def get_trip_trends():
+    # Trends always show full Jan 2019 daily view; date filter scopes to borough if set
+    boroughs = request.args.getlist('borough')
     conn = get_db_connection(); c = conn.cursor()
-    c.execute("SELECT strftime('%Y-%m-%d',tpep_pickup_datetime) AS date, COUNT(*) AS trips "
-              "FROM trips WHERE tpep_pickup_datetime LIKE '2019-01%' GROUP BY date ORDER BY date")
+    if boroughs:
+        placeholders = ','.join('?' * len(boroughs))
+        c.execute(f"SELECT strftime('%Y-%m-%d',tpep_pickup_datetime) AS date, COUNT(*) AS trips "
+                  f"FROM trips WHERE tpep_pickup_datetime LIKE '2019-01%' "
+                  f"AND PULocationID IN (SELECT LocationID FROM zones WHERE Borough IN ({placeholders})) "
+                  f"GROUP BY date ORDER BY date", boroughs)
+    else:
+        c.execute("SELECT strftime('%Y-%m-%d',tpep_pickup_datetime) AS date, COUNT(*) AS trips "
+                  "FROM trips WHERE tpep_pickup_datetime LIKE '2019-01%' GROUP BY date ORDER BY date")
     trends = [dict_from_row(r) for r in c.fetchall()]; conn.close()
     return jsonify(trends)
 
 @stats_bp.route('/api/statistics/fare-distribution')
 def get_fare_distribution():
+    where, params = _build_where("total_amount>0")
     conn = get_db_connection(); c = conn.cursor()
-    c.execute("""
+    c.execute(f"""
         SELECT CASE WHEN total_amount<10 THEN '$0-10' WHEN total_amount<20 THEN '$10-20'
                     WHEN total_amount<30 THEN '$20-30' WHEN total_amount<40 THEN '$30-40'
                     WHEN total_amount<50 THEN '$40-50' ELSE '$50+' END AS range,
-               COUNT(*) AS count FROM trips WHERE total_amount>0 GROUP BY range
-    """)
+               COUNT(*) AS count FROM trips WHERE {where} GROUP BY range
+    """, params)
     dist = [dict_from_row(r) for r in c.fetchall()]; conn.close()
     order = {'$0-10':1,'$10-20':2,'$20-30':3,'$30-40':4,'$40-50':5,'$50+':6}
     dist.sort(key=lambda x: order.get(x['range'],7))
@@ -162,8 +176,9 @@ def get_insights():
 
 @stats_bp.route('/api/statistics/pickup-time-distribution')
 def get_pickup_time_distribution():
+    where, params = _build_where("trip_distance>=0")
     conn = get_db_connection(); c = conn.cursor()
-    c.execute("SELECT strftime('%H',tpep_pickup_datetime) AS hour, COUNT(*) AS trip_count "
-              "FROM trips GROUP BY hour ORDER BY hour")
+    c.execute(f"SELECT strftime('%H',tpep_pickup_datetime) AS hour, COUNT(*) AS trip_count "
+              f"FROM trips WHERE {where} GROUP BY hour ORDER BY hour", params)
     stats = [dict_from_row(r) for r in c.fetchall()]; conn.close()
     return jsonify(stats)
