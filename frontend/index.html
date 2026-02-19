@@ -2,12 +2,215 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NYC Urban Mobility</title>
+    <title>NYC Urban Mobility Analytics</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="styles.css" />
   </head>
-  <body class="bg-charcoal text-white">
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+  <body>
+    <!-- Loading / Error overlay -->
+    <div id="overlay">
+      <div class="spinner" id="spinner"></div>
+      <p id="overlay-msg">Loading Dashboard&hellip;</p>
+      <div class="progress-wrap">
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-bar" style="width:0%"></div>
+        </div>
+        <span class="progress-pct" id="progress-label"></span>
+      </div>
+      <button class="retry-btn hidden" id="retry-btn" onclick="window.initDashboard()">Retry</button>
+    </div>
+
+    <div id="app">
+      <!-- ── Sidebar ────────────────────────────────────────────────── -->
+      <aside id="sidebar">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-icon">&#x1F695;</div>
+          <div>
+            <h1>NYC Mobility</h1>
+            <p>Analytics Dashboard</p>
+          </div>
+        </div>
+
+        <span class="sidebar-section-label">Data Filters</span>
+
+        <!-- Date picker (Jan 2019 only) -->
+        <div class="filter-block">
+          <label class="filter-label">Select Date</label>
+          <div class="date-field">
+            <input type="date" id="date-picker" min="2019-01-01" max="2019-01-31" autocomplete="off" />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <div class="date-hint">Dataset: January 2019 &nbsp;&bull;&nbsp; 7.5M trips</div>
+          <button class="clear-btn hidden" id="clear-date-btn">&#x2715; Show all days</button>
+        </div>
+
+        <!-- Time of day histogram -->
+        <div class="filter-block">
+          <label class="filter-label">
+            Time of Day
+            <span class="filter-active-badge hidden" id="hour-active-badge"></span>
+          </label>
+          <div class="histogram" id="histogram"></div>
+          <div class="histogram-labels">
+            <span>12AM</span><span>6AM</span><span>12PM</span><span>6PM</span><span>11PM</span>
+          </div>
+          <button class="clear-btn hidden" id="clear-hour-btn">&#x2715; Clear hour filter</button>
+        </div>
+
+        <!-- Borough checkboxes (populated from API) -->
+        <div class="filter-block">
+          <label class="filter-label">Boroughs</label>
+          <div class="borough-list" id="borough-list">
+            <div class="filter-loading">Loading&hellip;</div>
+          </div>
+        </div>
+
+        <!-- Fare range slider -->
+        <div class="filter-block">
+          <label class="filter-label">Fare Range</label>
+          <div class="range-group">
+            <div class="range-header">
+              <span class="range-value" id="fare-value">$0 &ndash; $250+</span>
+            </div>
+            <div class="range-track">
+              <div class="range-track-bg"></div>
+              <div class="range-track-fill" id="fare-fill"></div>
+              <input class="range-input" type="range" id="fare-low" min="0" max="250" step="5" value="0" />
+              <input class="range-input" type="range" id="fare-high" min="0" max="250" step="5" value="250" />
+              <div class="range-thumb" id="fare-thumb-low"></div>
+              <div class="range-thumb" id="fare-thumb-high"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Distance range slider -->
+        <div class="filter-block">
+          <label class="filter-label">Distance Range</label>
+          <div class="range-group">
+            <div class="range-header">
+              <span class="range-value" id="dist-value">0 &ndash; 50+ mi</span>
+            </div>
+            <div class="range-track">
+              <div class="range-track-bg"></div>
+              <div class="range-track-fill" id="dist-fill"></div>
+              <input class="range-input" type="range" id="dist-low" min="0" max="50" step="1" value="0" />
+              <input class="range-input" type="range" id="dist-high" min="0" max="50" step="1" value="50" />
+              <div class="range-thumb" id="dist-thumb-low"></div>
+              <div class="range-thumb" id="dist-thumb-high"></div>
+            </div>
+          </div>
+        </div>
+
+        <button class="apply-btn" id="apply-btn">Apply Filters</button>
+      </aside>
+
+      <!-- ── Main ──────────────────────────────────────────────────── -->
+      <div id="main">
+        <!-- Header -->
+        <header id="header">
+          <div class="header-brand">
+            <span>&#x1F695; NYC Urban Mobility</span>
+            <span class="header-badge" id="trip-count-badge">Loading&hellip;</span>
+          </div>
+
+          <!-- Search with autocomplete suggestions -->
+          <div class="header-search" id="search-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="search-input" placeholder="Search zones or boroughs&hellip;" autocomplete="off" spellcheck="false" />
+            <button class="search-clear hidden" id="search-clear-btn">&#x2715;</button>
+            <ul class="search-dropdown hidden" id="search-dropdown"></ul>
+          </div>
+
+          <div class="header-actions">
+            <button class="header-icon-btn" id="refresh-btn" title="Refresh data">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+            </button>
+            <div class="data-period-badge">&#x1F4C5; January 2019</div>
+          </div>
+        </header>
+
+        <!-- Dashboard -->
+        <div id="dashboard">
+          <!-- KPI row (no sparklines) -->
+          <div class="kpi-grid" id="kpi-grid"></div>
+
+          <!-- Map + side charts -->
+          <div class="mid-row">
+            <div class="map-card">
+              <div class="map-title">
+                &#x1F4CD; NYC Pickup Density
+                <span class="chart-period">January 2019</span>
+              </div>
+              <div id="map"></div>
+              <div class="map-legend" id="map-legend">
+                <div class="legend-title">Trip Density</div>
+              </div>
+            </div>
+            <div class="side-charts">
+              <div class="chart-card">
+                <div class="chart-title">
+                  Trip Trends
+                  <span class="chart-period">Jan 1–31, 2019 (daily)</span>
+                </div>
+                <div class="chart-canvas-wrap">
+                  <canvas id="trends-chart"></canvas>
+                </div>
+              </div>
+              <div class="chart-card">
+                <div class="chart-title">
+                  Borough Comparison
+                  <span class="chart-period">January 2019</span>
+                </div>
+                <div class="chart-canvas-wrap">
+                  <canvas id="borough-chart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom row -->
+          <div class="bottom-row">
+            <div class="chart-card" style="height:220px">
+              <div class="chart-title">
+                Fare Distribution
+                <span class="chart-period">January 2019</span>
+              </div>
+              <div class="chart-canvas-wrap"><canvas id="fare-chart"></canvas></div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-title">Average Trip Distance</div>
+              <div class="stat-card-big" id="avg-distance">&mdash;<span> miles</span></div>
+              <div class="stat-card-meta">
+                <span>Avg Speed: <b id="avg-speed">&mdash;</b></span>
+                <span>Avg Duration: <b id="avg-duration">&mdash;</b></span>
+              </div>
+              <svg class="distance-wave" viewBox="0 0 100 20" fill="none">
+                <path d="M0 15 Q 20 18, 40 10 T 80 5 T 100 12" stroke="#FFD700" stroke-width="2.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-title">Peak Hours <span class="chart-period">Jan 2019</span></div>
+              <div class="peak-list" id="peak-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="app.js"></script>
   </body>
 </html>
