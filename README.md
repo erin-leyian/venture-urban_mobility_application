@@ -3,6 +3,8 @@
 > **Full-stack data analytics dashboard** for exploring 6.5 million NYC Yellow Taxi trips from January 2019.  
 > Built with a custom Python pipeline, SQLite, Flask API, and a vanilla JS dashboard.
 
+📄 [Technical Documentation](https://docs.google.com/document/d/1SQwXaS7YuSznij4jZOHoLIxSB9jrr3ru4EGE_za8RT0/edit?tab=t.0) &nbsp;|&nbsp; 📊 [Team Sheet](https://docs.google.com/spreadsheets/d/1QJqkAyxRMrB263eiSfwBkgEmQOp3IDE967a9dt-lmQw/edit?gid=0#gid=0) &nbsp;|&nbsp; 📺 [Demo Video](https://youtu.be/1KrZdGuGXqE)
+
 ---
 
 ## 📺 Demo
@@ -70,7 +72,7 @@ venture-urban_mobility_application/
 
 ---
 
-### Step 1 — Data Pipeline *(one-time setup)*
+### Step 1 — Data Pipeline _(one-time setup)_
 
 The pipeline reads the raw TLC CSV, cleans it, derives features, and writes CSVs to `database/cleaned/`.
 
@@ -81,6 +83,7 @@ python3 data_processing.py
 ```
 
 To process only a subset (e.g. for testing):
+
 ```bash
 python3 data_processing.py 100000
 ```
@@ -89,7 +92,7 @@ Output: cleaned CSVs in `database/cleaned/` + a full report at `pipeline/cleanin
 
 ---
 
-### Step 2 — Load the Database *(one-time setup)*
+### Step 2 — Load the Database _(one-time setup)_
 
 ```bash
 cd database
@@ -127,7 +130,7 @@ Dashboard is live at: **http://localhost:8080**
 
 ---
 
-### Quick-start *(after initial setup)*
+### Quick-start _(after initial setup)_
 
 ```bash
 # Terminal 1 — API
@@ -143,28 +146,28 @@ python3 serve.py
 
 All endpoints accept these optional query parameters:
 
-| Parameter | Type | Example |
-|---|---|---|
-| `date` | `YYYY-MM-DD` | `?date=2019-01-15` |
-| `hour` | `0–23` | `?hour=8` |
-| `min_fare` / `max_fare` | number | `?min_fare=5&max_fare=30` |
-| `min_distance` / `max_distance` | number | `?min_distance=1&max_distance=10` |
-| `borough` | string (repeatable) | `?borough=Manhattan&borough=Brooklyn` |
+| Parameter                       | Type                | Example                               |
+| ------------------------------- | ------------------- | ------------------------------------- |
+| `date`                          | `YYYY-MM-DD`        | `?date=2019-01-15`                    |
+| `hour`                          | `0–23`              | `?hour=8`                             |
+| `min_fare` / `max_fare`         | number              | `?min_fare=5&max_fare=30`             |
+| `min_distance` / `max_distance` | number              | `?min_distance=1&max_distance=10`     |
+| `borough`                       | string (repeatable) | `?borough=Manhattan&borough=Brooklyn` |
 
-| Endpoint | Description |
-|---|---|
-| `GET /api/statistics` | Overall KPIs — total trips, revenue, avg fare, distance, speed |
-| `GET /api/statistics/by-zone` | Trip counts per taxi zone (powers the choropleth map) |
-| `GET /api/statistics/by-borough` | Stats grouped by borough |
-| `GET /api/statistics/peak-hours` | Top 10 busiest hours of the day |
-| `GET /api/statistics/fare-distribution` | Trip counts bucketed by fare range |
-| `GET /api/statistics/trends` | Daily trip counts Jan 1–31 |
-| `GET /api/statistics/pickup-time-distribution` | Trips by each hour of the day (0–23) |
-| `GET /api/statistics/peak-vs-offpeak` | Rush hour vs. off-peak comparison |
-| `GET /api/zones/geojson` | GeoJSON zone boundaries for the Leaflet map |
-| `GET /api/trips` | Raw trip records (filterable, limited) |
-| `GET /api/top-routes` | Most popular pickup → dropoff zone pairs |
-| `GET /api/health` | Health check — confirms API is running |
+| Endpoint                                       | Description                                                    |
+| ---------------------------------------------- | -------------------------------------------------------------- |
+| `GET /api/statistics`                          | Overall KPIs — total trips, revenue, avg fare, distance, speed |
+| `GET /api/statistics/by-zone`                  | Trip counts per taxi zone (powers the choropleth map)          |
+| `GET /api/statistics/by-borough`               | Stats grouped by borough                                       |
+| `GET /api/statistics/peak-hours`               | Top 10 busiest hours of the day                                |
+| `GET /api/statistics/fare-distribution`        | Trip counts bucketed by fare range                             |
+| `GET /api/statistics/trends`                   | Daily trip counts Jan 1–31                                     |
+| `GET /api/statistics/pickup-time-distribution` | Trips by each hour of the day (0–23)                           |
+| `GET /api/statistics/peak-vs-offpeak`          | Rush hour vs. off-peak comparison                              |
+| `GET /api/zones/geojson`                       | GeoJSON zone boundaries for the Leaflet map                    |
+| `GET /api/trips`                               | Raw trip records (filterable, limited)                         |
+| `GET /api/top-routes`                          | Most popular pickup → dropoff zone pairs                       |
+| `GET /api/health`                              | Health check — confirms API is running                         |
 
 Full endpoint documentation: [`api/API_DOCS.md`](api/API_DOCS.md)
 
@@ -181,17 +184,18 @@ No built-in sorting functions are used anywhere in this project:
 
 ## 📊 Dashboard Features
 
-| Feature | Description |
-|---|---|
-| 🗺️ Choropleth Map | Leaflet heatmap of pickup density across all 263 NYC taxi zones |
-| 📈 Trip Trends | Daily line chart Jan 1–31, 2019 |
-| 🏙️ Borough Comparison | Horizontal bar chart — trips and revenue per borough |
-| 💰 Fare Distribution | Bar chart grouped by fare bucket ($0–10, $10–20, etc.) |
-| ⏰ Time-of-Day Histogram | 24-hour pickup histogram — click any bar to filter by that hour |
-| 📊 KPI Cards | Total trips, total revenue, avg fare, avg distance |
-| 🔍 Zone Search | Autocomplete search that highlights any of the 263 zones on the map |
+| Feature                  | Description                                                         |
+| ------------------------ | ------------------------------------------------------------------- |
+| 🗺️ Choropleth Map        | Leaflet heatmap of pickup density across all 263 NYC taxi zones     |
+| 📈 Trip Trends           | Daily line chart Jan 1–31, 2019                                     |
+| 🏙️ Borough Comparison    | Horizontal bar chart — trips and revenue per borough                |
+| 💰 Fare Distribution     | Bar chart grouped by fare bucket ($0–10, $10–20, etc.)              |
+| ⏰ Time-of-Day Histogram | 24-hour pickup histogram — click any bar to filter by that hour     |
+| 📊 KPI Cards             | Total trips, total revenue, avg fare, avg distance                  |
+| 🔍 Zone Search           | Autocomplete search that highlights any of the 263 zones on the map |
 
 **Sidebar filters (all applied on button click):**
+
 - Date picker (Jan 1–31, 2019)
 - Hour of day (click histogram bar)
 - Borough checkboxes (Manhattan, Brooklyn, Queens, Bronx, Staten Island)
@@ -204,11 +208,11 @@ No built-in sorting functions are used anywhere in this project:
 
 ## 👥 Team
 
-| Name | Role |
-|---|---|
-| **Belyse Intwaza** | Data engineering, pipeline, custom algorithms, database schema |
-| **Erin Wanjiru Leyian** | Backend Flask API, business logic, all endpoints |
-| **Kenny Gael Ishimwe Gatete** | Frontend dashboard, visualisations, interactive map |
+| Name                          | Role                                                           |
+| ----------------------------- | -------------------------------------------------------------- |
+| **Belyse Intwaza**            | Data engineering, pipeline, custom algorithms, database schema |
+| **Erin Wanjiru Leyian**       | Backend Flask API, business logic, all endpoints               |
+| **Kenny Gael Ishimwe Gatete** | Frontend dashboard, visualisations, interactive map            |
 
 ---
 
@@ -220,4 +224,4 @@ No built-in sorting functions are used anywhere in this project:
 
 ---
 
-*For course use only — ALU Software Engineering, 2024–2025.*
+_For course use only — ALU Software Engineering, 2024–2025._
