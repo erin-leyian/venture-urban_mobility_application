@@ -51,7 +51,8 @@ venture-urban_mobility_application/
 │       └── custom_sort.py      — custom merge sort (no built-in sort)
 ├── database/
 │   ├── schema.sql              — DB schema definition
-│   └── insert_data.py          — loads cleaned CSVs → SQLite
+│   ├── insert_data.py          — loads cleaned CSVs → SQLite
+│   └── Database schema.png     — relational schema diagram
 ├── pipeline/
 │   ├── data_processing.py      — clean, engineer features, output CSVs
 │   ├── cleaning_log.md         — auto-generated cleaning report
@@ -100,6 +101,24 @@ python3 insert_data.py
 ```
 
 This loads `database/cleaned/trips_cleaned.csv` and zone data into `api/data/taxi_mock.db`.
+
+---
+
+## 🗄️ Database Schema
+
+The database is a normalized SQLite schema with 5 tables. The `trips` table is the fact table, joined to `taxi_zones`, `rate_codes`, `payment_types`, and an optional `zone_geometry` table for GeoJSON map data.
+
+![NYC Taxi Trip Database Schema](database/Database%20schema.png)
+
+**Tables:**
+
+- **`trips`** — main fact table: `trip_id`, `pickup_time`, `dropoff_time`, `pu_location_id`, `do_location_id`, `rate_code_id`, `payment_type_id`, fare/tip/distance fields, derived features (duration, speed, is_peak_hour)
+- **`taxi_zones`** — dimension: `location_id`, `borough`, `zone_name`, `service_zone` · indexed on borough + service zone
+- **`rate_codes`** — lookup: Standard Rate, JFK, Newark, Nassau/Westchester, Negotiated Fare, Group Ride
+- **`payment_types`** — lookup: Credit Card, Cash, No Charge, Dispute, Unknown, Voided Trip
+- **`zone_geometry`** _(optional)_ — stores raw GeoJSON shapes per `location_id` for map rendering
+
+**Indexes on `trips`:** pickup time, dropoff time, location IDs, fare amount, trip duration, is_peak_hour
 
 ---
 
